@@ -7,6 +7,15 @@ import { badRequest, forbidden } from "../utils/http.js";
 
 export const milestonesRouter = Router();
 
+interface MilestoneRow {
+  id: number;
+  project_id: number;
+  title: string;
+  status: "todo" | "in_progress" | "blocked" | "done";
+  due_date: string | null;
+  order_index: number;
+}
+
 const schema = z.object({
   projectId: z.number(),
   title: z.string().min(1),
@@ -28,7 +37,7 @@ milestonesRouter.post("/", async (req, res) => {
     return forbidden(res);
   }
 
-  const result = await query(
+  const result = await query<MilestoneRow>(
     `INSERT INTO milestones(project_id, title, status, due_date, order_index)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
@@ -56,8 +65,8 @@ milestonesRouter.patch("/:id", async (req, res) => {
     return badRequest(res, parsed.error.message);
   }
 
-  const existing = await query("SELECT * FROM milestones WHERE id = $1", [milestoneId]);
-  const before = existing.rows[0] as { project_id: number } | undefined;
+  const existing = await query<MilestoneRow>("SELECT * FROM milestones WHERE id = $1", [milestoneId]);
+  const before = existing.rows[0];
   if (!before) {
     return res.status(404).json({ error: "Milestone not found" });
   }
@@ -67,7 +76,7 @@ milestonesRouter.patch("/:id", async (req, res) => {
   }
 
   const data = parsed.data;
-  const result = await query(
+  const result = await query<MilestoneRow>(
     `UPDATE milestones
      SET title = COALESCE($2, title),
          status = COALESCE($3, status),
