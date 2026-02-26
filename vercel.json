@@ -1,8 +1,4 @@
 {
   "version": 2,
-  "framework": null,
-  "installCommand": "npm install",
-  "buildCommand": "npm --workspace @meiu/frontend run build",
-  "outputDirectory": "apps/frontend/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
