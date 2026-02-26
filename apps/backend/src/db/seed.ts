@@ -54,27 +54,26 @@ async function run() {
         RETURNING id
       `, [projectId]);
 
+      const meiuId = byEmail.get("meiu@meiu.dev");
+      const m1 = milestoneRows.rows[0].id;
+      const m2 = milestoneRows.rows[1].id;
+      const m3 = milestoneRows.rows[2].id;
+      const m4 = milestoneRows.rows[3].id;
+
       await client.query(
         `INSERT INTO tasks(project_id, milestone_id, assignee_id, title, description, status, priority, progress_pct, blocker, created_by, points)
          VALUES
-          ($1, $2, $5, 'Scaffold MVP backend + frontend', 'Express API, React frontend, Postgres, Redis, CI', 'done', 'high', 100, NULL, 'meiu', 8),
-          ($1, $2, $5, 'Fix CI type errors', 'Resolve TypeScript config and pg query typing', 'done', 'medium', 100, NULL, 'meiu', 2),
-          ($1, $3, $5, 'Add task tracking table + API', 'Tasks CRUD, project stats, progress percentage', 'done', 'high', 100, NULL, 'meiu', 5),
-          ($1, $3, $5, 'Deploy to Vercel + Railway', 'Frontend on Vercel, backend on Railway with Postgres + Redis', 'done', 'critical', 100, NULL, 'meiu', 5),
-          ($1, $3, $5, 'Fix deployment issues', 'Node version, TypeScript dist path, CORS, env vars', 'done', 'critical', 100, NULL, 'meiu', 3),
-          ($1, $4, $5, 'Frontend-backend connection verification', 'Verify VITE_API_BASE + CORS working end-to-end', 'in_progress', 'high', 50, NULL, 'meiu', 2),
-          ($1, $4, $5, 'Add authentication', 'Real user auth instead of x-user-id header', 'todo', 'high', 0, NULL, 'meiu', 5),
-          ($1, $4, $5, 'Mobile responsive layout', 'Dashboard usable on phone screens', 'todo', 'medium', 0, NULL, 'meiu', 3),
-          ($1, $5, $5, 'Autonomous task creation via API', 'MeiU creates/updates tasks as it works on GitHub', 'todo', 'high', 0, NULL, 'meiu', 5),
-          ($1, $5, $5, 'Long-horizon execution loop', 'Heartbeat + cron + GOALS.md driving continuous progress', 'in_progress', 'high', 60, NULL, 'meiu', 3)`,
-        [
-          projectId,
-          milestoneRows.rows[0].id,
-          milestoneRows.rows[1].id,
-          milestoneRows.rows[2].id,
-          milestoneRows.rows[3].id,
-          byEmail.get("meiu@meiu.dev")
-        ]
+          ($1, $2, $3, 'Scaffold MVP backend + frontend', 'Express API, React frontend, Postgres, Redis, CI', 'done', 'high', 100, NULL, 'meiu', 8),
+          ($1, $2, $3, 'Fix CI type errors', 'Resolve TypeScript config and pg query typing', 'done', 'medium', 100, NULL, 'meiu', 2),
+          ($1, $4, $3, 'Add task tracking table + API', 'Tasks CRUD, project stats, progress percentage', 'done', 'high', 100, NULL, 'meiu', 5),
+          ($1, $4, $3, 'Deploy to Vercel + Railway', 'Frontend on Vercel, backend on Railway with Postgres + Redis', 'done', 'critical', 100, NULL, 'meiu', 5),
+          ($1, $4, $3, 'Fix deployment issues', 'Node version, TypeScript dist path, CORS, env vars', 'done', 'critical', 100, NULL, 'meiu', 3),
+          ($1, $5, $3, 'Frontend-backend connection verification', 'Verify VITE_API_BASE + CORS working end-to-end', 'in_progress', 'high', 50, NULL, 'meiu', 2),
+          ($1, $5, $3, 'Add authentication', 'Real user auth instead of x-user-id header', 'todo', 'high', 0, NULL, 'meiu', 5),
+          ($1, $5, $3, 'Mobile responsive layout', 'Dashboard usable on phone screens', 'todo', 'medium', 0, NULL, 'meiu', 3),
+          ($1, $6, $3, 'Autonomous task creation via API', 'MeiU creates/updates tasks as it works on GitHub', 'todo', 'high', 0, NULL, 'meiu', 5),
+          ($1, $6, $3, 'Long-horizon execution loop', 'Heartbeat + cron + GOALS.md driving continuous progress', 'in_progress', 'high', 60, NULL, 'meiu', 3)`,
+        [projectId, m1, meiuId, m2, m3, m4]
       );
 
       await client.query(
@@ -90,7 +89,7 @@ async function run() {
     console.log("Seed data inserted");
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Seed failed", error);
+    console.error("❌ Seed failed:", error instanceof Error ? error.message : error);
     process.exitCode = 1;
   } finally {
     client.release();
