@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000/api";
-const DEFAULT_USER_ID = import.meta.env.VITE_USER_ID ?? "2";
+const DEFAULT_USER_ID = import.meta.env.VITE_USER_ID ?? "8";
 
 function headers() {
   return {
