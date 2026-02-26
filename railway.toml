@@ -1,9 +1,9 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd apps/backend && npm install --include=dev && npm run build"
+buildCommand = "cd apps/backend && npm install --include=dev && npm run build && cp -r migrations dist/"
 
 [deploy]
-startCommand = "cd apps/backend && npm run migrate && npm run seed; npm run start"
+startCommand = "cd apps/backend && node dist/src/db/migrate.js && node dist/src/db/seed.js; node dist/src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
