@@ -1,3 +1,22 @@
+export interface ProjectTaskStats {
+  total: number;
+  todo: number;
+  in_progress: number;
+  blocked: number;
+  done: number;
+  progress_pct: number;
+}
+
+export interface ProjectStats {
+  taskStats: ProjectTaskStats;
+  latestTask: {
+    title: string;
+    status: string;
+    updatedAt: string;
+  } | null;
+  currentBlocker: string | null;
+}
+
 export interface Project {
   id: number;
   title: string;
@@ -9,6 +28,7 @@ export interface Project {
   start_date: string | null;
   target_date: string | null;
   updated_at: string;
+  stats?: ProjectStats;
 }
 
 export interface Milestone {
@@ -26,7 +46,12 @@ export interface Task {
   milestone_id: number | null;
   assignee_id: number | null;
   title: string;
+  description?: string | null;
   status: string;
+  priority?: string;
+  progress_pct?: number;
+  blocker?: string | null;
+  created_by?: string;
   points: number;
   updated_at: string;
 }

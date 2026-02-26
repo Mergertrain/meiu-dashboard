@@ -7,6 +7,129 @@ import { badRequest, forbidden } from "../utils/http.js";
 
 export const projectsRouter = Router();
 
+interface ProjectTaskStats {
+  taskStats: {
+    total: number;
+    todo: number;
+    in_progress: number;
+    blocked: number;
+    done: number;
+    progress_pct: number;
+  };
+  latestTask: {
+    title: string;
+    status: string;
+    updatedAt: string;
+  } | null;
+  currentBlocker: string | null;
+}
+
+const defaultTaskStats: ProjectTaskStats = {
+  taskStats: {
+    total: 0,
+    todo: 0,
+    in_progress: 0,
+    blocked: 0,
+    done: 0,
+    progress_pct: 0
+  },
+  latestTask: null,
+  currentBlocker: null
+};
+
+async function loadTaskStats(projectIds: number[]) {
+  if (projectIds.length === 0) {
+    return new Map<number, ProjectTaskStats>();
+  }
+
+  const [aggregateRows, latestRows, blockerRows] = await Promise.all([
+    query<{
+      project_id: number;
+      total: number;
+      todo: number;
+      in_progress: number;
+      blocked: number;
+      done: number;
+      progress_pct: number;
+    }>(
+      `SELECT
+         project_id,
+         COUNT(*)::INT AS total,
+         COUNT(*) FILTER (WHERE status = 'todo')::INT AS todo,
+         COUNT(*) FILTER (WHERE status = 'in_progress')::INT AS in_progress,
+         COUNT(*) FILTER (WHERE status = 'blocked')::INT AS blocked,
+         COUNT(*) FILTER (WHERE status = 'done')::INT AS done,
+         CASE
+           WHEN COUNT(*) = 0 THEN 0
+           ELSE ((COUNT(*) FILTER (WHERE status = 'done') * 100) / COUNT(*))::INT
+         END AS progress_pct
+       FROM tasks
+       WHERE project_id = ANY($1::bigint[])
+       GROUP BY project_id`,
+      [projectIds]
+    ),
+    query<{ project_id: number; title: string; status: string; updated_at: string }>(
+      `SELECT DISTINCT ON (project_id) project_id, title, status::text AS status, updated_at
+       FROM tasks
+       WHERE project_id = ANY($1::bigint[])
+       ORDER BY project_id, updated_at DESC`,
+      [projectIds]
+    ),
+    query<{ project_id: number; blocker: string }>(
+      `SELECT DISTINCT ON (project_id) project_id, blocker
+       FROM tasks
+       WHERE project_id = ANY($1::bigint[])
+         AND status = 'blocked'
+         AND blocker IS NOT NULL
+         AND length(trim(blocker)) > 0
+       ORDER BY project_id, updated_at DESC`,
+      [projectIds]
+    )
+  ]);
+
+  const statsMap = new Map<number, ProjectTaskStats>();
+  for (const id of projectIds) {
+    statsMap.set(id, { ...defaultTaskStats, taskStats: { ...defaultTaskStats.taskStats } });
+  }
+
+  for (const row of aggregateRows.rows) {
+    const current = statsMap.get(row.project_id);
+    if (!current) {
+      continue;
+    }
+    current.taskStats = {
+      total: row.total,
+      todo: row.todo,
+      in_progress: row.in_progress,
+      blocked: row.blocked,
+      done: row.done,
+      progress_pct: row.progress_pct
+    };
+  }
+
+  for (const row of latestRows.rows) {
+    const current = statsMap.get(row.project_id);
+    if (!current) {
+      continue;
+    }
+    current.latestTask = {
+      title: row.title,
+      status: row.status,
+      updatedAt: row.updated_at
+    };
+  }
+
+  for (const row of blockerRows.rows) {
+    const current = statsMap.get(row.project_id);
+    if (!current) {
+      continue;
+    }
+    current.currentBlocker = row.blocker;
+  }
+
+  return statsMap;
+}
+
 const createSchema = z.object({
   title: z.string().min(1),
   sponsorId: z.number(),
@@ -23,23 +146,26 @@ const updateSchema = createSchema.partial();
 projectsRouter.get("/", async (req, res) => {
   const user = req.authUser!;
 
+  let rows;
   if (user.role === "admin" || user.role === "sponsor") {
-    const rows = await query(
+    rows = await query(
       `SELECT id, title, sponsor_id, lead_id, status, priority, scope, start_date, target_date, updated_at, archived_at
        FROM projects ORDER BY updated_at DESC`
     );
-    return res.json(rows.rows);
+  } else {
+    rows = await query(
+      `SELECT p.id, p.title, p.sponsor_id, p.lead_id, p.status, p.priority, p.scope, p.start_date, p.target_date, p.updated_at, p.archived_at
+       FROM projects p
+       JOIN project_members pm ON p.id = pm.project_id
+       WHERE pm.user_id = $1
+       ORDER BY p.updated_at DESC`,
+      [user.id]
+    );
   }
 
-  const rows = await query(
-    `SELECT p.id, p.title, p.sponsor_id, p.lead_id, p.status, p.priority, p.scope, p.start_date, p.target_date, p.updated_at, p.archived_at
-     FROM projects p
-     JOIN project_members pm ON p.id = pm.project_id
-     WHERE pm.user_id = $1
-     ORDER BY p.updated_at DESC`,
-    [user.id]
-  );
-  res.json(rows.rows);
+  const projectIds = rows.rows.map((row: { id: number }) => row.id);
+  const statsMap = await loadTaskStats(projectIds);
+  res.json(rows.rows.map((row: { id: number }) => ({ ...row, stats: statsMap.get(row.id) ?? defaultTaskStats })));
 });
 
 projectsRouter.get("/:id", async (req, res) => {
@@ -65,7 +191,7 @@ projectsRouter.get("/:id", async (req, res) => {
       [projectId]
     ),
     query(
-      `SELECT id, project_id, milestone_id, assignee_id, title, status, points, updated_at, created_at
+      `SELECT id, project_id, milestone_id, assignee_id, title, description, status, priority, progress_pct, blocker, created_by, points, updated_at, created_at
        FROM tasks WHERE project_id = $1 ORDER BY updated_at DESC`,
       [projectId]
     ),
@@ -78,6 +204,7 @@ projectsRouter.get("/:id", async (req, res) => {
 
   res.json({
     project,
+    stats: (await loadTaskStats([projectId])).get(projectId) ?? defaultTaskStats,
     milestones: milestones.rows,
     tasks: tasks.rows,
     updates: updates.rows

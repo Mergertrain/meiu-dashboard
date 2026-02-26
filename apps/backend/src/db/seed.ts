@@ -54,11 +54,13 @@ async function run() {
     `, [projectId]);
 
     await client.query(
-      `INSERT INTO tasks(project_id, milestone_id, assignee_id, title, status, points)
+      `INSERT INTO tasks(project_id, milestone_id, assignee_id, title, description, status, priority, progress_pct, blocker, created_by, points)
        VALUES
-        ($1, $2, $3, 'Implement RBAC checks', 'in_progress', 5),
-        ($1, $4, $3, 'Build SSE project channel', 'todo', 3),
-        ($1, $5, $6, 'Create frontend status board', 'todo', 5)`,
+        ($1, $2, $3, 'Implement RBAC checks', 'Enforce project access before mutation endpoints', 'in_progress', 'high', 60, NULL, 'meiu', 5),
+        ($1, $4, $3, 'Build SSE project channel', 'Deliver live events for task and update changes', 'todo', 'medium', 0, NULL, 'meiu', 3),
+        ($1, $5, $6, 'Create frontend status board', 'Render task swimlanes and transitions in dashboard', 'todo', 'medium', 0, NULL, 'meiu', 5),
+        ($1, $4, $6, 'Wire DB migration in CI', 'Automate schema migration on deployment pipeline', 'blocked', 'critical', 35, 'Waiting for DB migration review approval', 'meiu', 2),
+        ($1, $5, $3, 'Add project card progress visuals', 'Show aggregate task completion per project card', 'done', 'high', 100, NULL, 'meiu', 2)`,
       [
         projectId,
         milestoneRows.rows[0].id,
