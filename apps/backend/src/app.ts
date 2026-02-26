@@ -21,8 +21,20 @@ export async function createApp() {
   app.use(cors({ origin: env.corsOrigin }));
   app.use(express.json());
 
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString(), version: "0.1.0" });
+  app.get("/health", async (_req, res) => {
+    try {
+      const users = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM users"));
+      const projects = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM projects"));
+      const tasks = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM tasks"));
+      res.json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        version: "0.1.0",
+        db: { users: users.rows[0].c, projects: projects.rows[0].c, tasks: tasks.rows[0].c }
+      });
+    } catch (e) {
+      res.json({ status: "ok", timestamp: new Date().toISOString(), version: "0.1.0", dbError: String(e) });
+    }
   });
 
   app.use(requireAuth);
