@@ -35,8 +35,8 @@ async function run() {
     console.log("Migrations complete");
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Migration failed", error);
-    process.exitCode = 1;
+    console.error("⚠️  Migration failed — server will still start but DB may be uninitialized:", error);
+    process.exitCode = 0; // non-fatal: let server start so we can see logs
   } finally {
     client.release();
     await pool.end();

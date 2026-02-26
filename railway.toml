@@ -3,7 +3,7 @@ builder = "NIXPACKS"
 buildCommand = "cd apps/backend && npm install && npm run build"
 
 [deploy]
-startCommand = "cd apps/backend && npm run migrate && npm run start"
+startCommand = "cd apps/backend && npm run migrate; npm run start"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
