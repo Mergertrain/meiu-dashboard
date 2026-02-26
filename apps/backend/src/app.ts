@@ -22,7 +22,7 @@ export async function createApp() {
   app.use(express.json());
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true });
+    res.json({ status: "ok", timestamp: new Date().toISOString(), version: "0.1.0" });
   });
 
   app.use(requireAuth);
