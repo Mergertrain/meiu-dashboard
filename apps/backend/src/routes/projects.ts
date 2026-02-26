@@ -163,9 +163,9 @@ projectsRouter.get("/", async (req, res) => {
     );
   }
 
-  const projectIds = rows.rows.map((row: { id: number }) => row.id);
+  const projectIds = (rows.rows as { id: number }[]).map((row) => row.id);
   const statsMap = await loadTaskStats(projectIds);
-  res.json(rows.rows.map((row: { id: number }) => ({ ...row, stats: statsMap.get(row.id) ?? defaultTaskStats })));
+  res.json((rows.rows as { id: number }[]).map((row) => ({ ...row, stats: statsMap.get(row.id) ?? defaultTaskStats })));
 });
 
 projectsRouter.get("/:id", async (req, res) => {
