@@ -19,7 +19,14 @@ export async function createApp() {
   const sseHub = new SseHub(eventBus);
 
   const app = express();
-  app.use(cors({ origin: env.corsOrigin }));
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (env.corsOrigin.includes(origin)) return callback(null, true);
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    }
+  }));
   app.use(express.json());
 
   app.get("/health", async (_req, res) => {
