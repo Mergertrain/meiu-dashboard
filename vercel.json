@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd apps/frontend && npm install && npm run build",
+  "installCommand": "npm install",
+  "buildCommand": "npm --workspace @meiu/frontend run build",
   "outputDirectory": "apps/frontend/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
