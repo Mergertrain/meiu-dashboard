@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { pool, query } from "./db/client.js";
 import { env } from "./config/env.js";
 import { requireAuth } from "./middleware/auth.js";
 import { SseHub } from "./realtime/sse.js";
@@ -23,9 +24,11 @@ export async function createApp() {
 
   app.get("/health", async (_req, res) => {
     try {
-      const users = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM users"));
-      const projects = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM projects"));
-      const tasks = await import("./db/client.js").then(m => m.query("SELECT count(*) as c FROM tasks"));
+      const [users, projects, tasks] = await Promise.all([
+        query("SELECT count(*) as c FROM users"),
+        query("SELECT count(*) as c FROM projects"),
+        query("SELECT count(*) as c FROM tasks"),
+      ]);
       res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
@@ -40,7 +43,6 @@ export async function createApp() {
   // Temporary one-shot seed endpoint — remove after first use
   app.post("/admin/seed", async (_req, res) => {
     try {
-      const { pool } = await import("./db/client.js");
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -51,7 +53,7 @@ export async function createApp() {
             ('MeiU', 'meiu@meiu.dev', 'project_lead')
           ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
           RETURNING id, email`);
-        const byEmail = new Map(users.rows.map((r: {id:number;email:string}) => [r.email, r.id]));
+        const byEmail = new Map((users.rows as {id:number;email:string}[]).map(r => [r.email, r.id]));
         const meiuId = byEmail.get("meiu@meiu.dev");
         const weiId = byEmail.get("wei@meiu.dev");
         const jiajieId = byEmail.get("jiajie@meiu.dev");
