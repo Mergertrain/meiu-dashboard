@@ -69,8 +69,8 @@ npm run dev
 - Project visibility is scoped by `project_members` for non-admin/non-sponsor users.
 - Write checks:
   - Project metadata + milestone management: project lead (or sponsor/admin)
-  - Tasks + project updates: contributor and above (or sponsor/admin)
-  - Viewers: read-only
+  - Task mutation (`PATCH /tasks`) + update posting (`POST /updates`): project lead and above (or sponsor/admin)
+  - Contributors/viewers: read-only for these protected write endpoints
 
 ## APIs implemented
 

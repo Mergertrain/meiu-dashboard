@@ -10,10 +10,10 @@ describe("RBAC role matrix", () => {
     expect(canCreateProject({ id: 5, role: "viewer" })).toBe(false);
   });
 
-  it("enforces contributor threshold for write actions", () => {
-    expect(hasMinimumRole("contributor", "contributor")).toBe(true);
-    expect(hasMinimumRole("project_lead", "contributor")).toBe(true);
-    expect(hasMinimumRole("sponsor", "contributor")).toBe(true);
-    expect(hasMinimumRole("viewer", "contributor")).toBe(false);
+  it("enforces project_lead threshold for protected write actions", () => {
+    expect(hasMinimumRole("contributor", "project_lead")).toBe(false);
+    expect(hasMinimumRole("project_lead", "project_lead")).toBe(true);
+    expect(hasMinimumRole("sponsor", "project_lead")).toBe(true);
+    expect(hasMinimumRole("viewer", "project_lead")).toBe(false);
   });
 });

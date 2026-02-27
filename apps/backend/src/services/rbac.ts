@@ -53,7 +53,7 @@ export async function canWriteTasks(projectId: number, user: AuthUser): Promise<
     return true;
   }
   const level = await getProjectAccessLevel(projectId, user.id);
-  return level !== null && hasMinimumRole(level, "contributor");
+  return level !== null && hasMinimumRole(level, "project_lead");
 }
 
 export async function canPostUpdate(projectId: number, user: AuthUser): Promise<boolean> {
